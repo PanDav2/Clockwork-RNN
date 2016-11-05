@@ -1,0 +1,5 @@
+\beamer@endinputifotherversion {3.36pt}
+\beamer@sectionintoc {1}{First Section}{2}{0}{1}
+\beamer@subsectionintoc {1}{1}{Subsection Example}{3}{0}{1}
+\beamer@sectionintoc {2}{Bibliography Section}{7}{0}{2}
+\beamer@sectionintoc {3}{Second Section}{9}{0}{3}
