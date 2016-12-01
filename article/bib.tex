@@ -1,20 +1,73 @@
-\documentclass[a4paper,10pt]{article}
+\documentclass[a4paper,10pt]{article} 
 \usepackage[utf8]{inputenc}
+%\usepackage{geometry}
+\usepackage[a4paper, total={6in, 8in},top=1in]{geometry}
+\usepackage{verbatim}
+\usepackage{graphicx}
 
-\title{Bibliography management:\\\texttt{thebibliography} environment}
-\author{David Panou}
+\title{Clockwork RNN}
+\author{Paul Mustière - David Panou}
 
 \begin{document}
 \maketitle
 
-This document is an example of \texttt{thebibliography} environment using in bibliography management. Three items are cited: \textit{The \LaTeX\ Companion} book \cite{latexcompanion}, the Einstein journal paper \cite{einstein}, and the Donald Knuth's website \cite{knuthwebsite}. The \LaTeX\ related items are \cite{latexcompanion,knuthwebsite}. 
+\section{Abstract}
 
-\medskip
+Quickly introduce the RNN Game
+
+\section{Context}
+
+Comparition with \textit{https://arxiv.org/pdf/1412.7753v2.pdf} and previous work
+
+\section{Clockwork RNN}
+
+\section{Article contribution}
+
+\section{Paper's results and analysis}
+
+\section{Our benchmark}
+
+How do we plain to evaluate our implementations
+
+A quick recap of some article.
+
+TODO: Change thebibliography to BibTex (Much faster to use)
+
 
 \begin{thebibliography}{9}
-\bibitem{latexcompanion} Michel Goossens, Frank Mittelbach, and Alexander Samarin. \textit{The \LaTeX\ Companion}. Addison-Wesley, Reading, Massachusetts, 1993.
-\bibitem{einstein} Albert Einstein. \textit{Zur Elektrodynamik bewegter K{\"o}rper}. (German) [\textit{On the electrodynamics of moving bodies}]. Annalen der Physik, 322(10):891–921, 1905.
-\bibitem{knuthwebsite} Knuth: Computers and Typesetting,\\\texttt{http://www-cs-faculty.stanford.edu/\~{}uno/abcde.html}
+
+\bibitem{turing_machines}Graves, Alex, Wayne, Greg, and Danihelka, Ivo. Neural turing machines. arXiv preprint arXiv:1410.5401, 2014.
+
+\bibitem{memory_networks} J. Weston, S. Chopra, A. Bordes. Memory Networks. arXiv preprint arXiv:1410.5401, 2014.
+
+\bibitem{turing_complete} Siegelmann, H. T. and Sontag, E. D. (1995). On the computational power of neural nets.
+Journal of computer and system sciences, 50(1):132–150.
+
+\bibitem{stack} S. Das, C.L. Giles, G.Z. Sun, "Learning Context Free Grammars: Limitations of a Recurrent Neural Network with an External Stack Memory," Proc. 14th Annual Conf. of the Cog. Sci. Soc., p. 79, 1992.
+
+\bibitem{fast-weights} J. Schmidhuber. Learning to Control Fast-Weight Memories : An Alternative To Dynamic Recurrent Networks 
+\textit{Neural Computation, 4(1):131-139, 1992}. 
+
+\bibitem{self_learning} Hochreiter, Sepp; Younger, A. Steven; Conwell, Peter R. (2001). "Learning to Learn Using Gradient Descent". \textit{ICANN 2001, 2130: 87–94}
+
+\bibitem{qa1} Berant, Jonathan, Chou, Andrew, Frostig, Roy, and Liang, Percy. Semantic parsing on freebase from question-answer pairs. \textit{In EMNLP, pp. 1533–1544, 2013.}
+
+\bibitem{qa2} Berant, Jonathan, Srikumar, Vivek, Chen, Pei-Chun, Huang, Brad, Manning, Christopher D, Van- der Linden, Abby, Harding, Brittany, and Clark, Peter. Modeling biological processes for reading comprehension. \textit{In Proc. EMNLP, 2014.}
+
+\bibitem{switchboard} Jurafsky, Daniel, Rebecca Bates, Noah Coccaro, Rachel Martin, Marie Meteer, Klaus Ries, Elizabeth Shriberg, Andreas Stolcke, Paul Taylor, and Carol Van Ess-Dykema. 1998. Switchboard Discourse Language Modeling Project Report Research Note 30, Center for Speech and Language Processing, Johns Hopkins University, Baltimore, MD
+
+\bibitem{fractalnet} Gustav Larsson, Michael Maire, and Gregory Shakhnarovich. Fractalnet: Ultra-deep neural networks without residuals. arXiv preprint arXiv:1605.07648, 2016.
+
+\bibitem{wavenet} van den Oord, A. et al. Wavenet: A generative model for raw audio. arXiv preprint arXiv:1609.03499 (2016). 1609.03499
+
+\bibitem{quald} http://qald.sebastianwalter.org/
+
+\bibitem{bordes} Bordes, Antoine, Weston, Jason, and Usunier, Nicolas. Open question answering with weakly su- pervised embedding models. ECML-PKDD, 2014b.
+
+\bibitem{fader} Fader, Anthony, Zettlemoyer, Luke, and Etzioni, Oren. Paraphrase-driven learning for open question answering. In ACL, pp. 1608–1618, 2013.
+
+\bibitem{sutskever} Sutskever, I. Vinyals, O., Le. Q. V. Sequence to sequence learning with neural networks. In Proc. Advances in Neural Information Processing Systems 27 3104–3112 (2014). 
+
 \end{thebibliography}
 
 \end{document}
