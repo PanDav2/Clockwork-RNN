@@ -1,9 +1,17 @@
 \documentclass[a4paper,10pt]{article} 
+\usepackage[francais]{babel}
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc} 
 %\usepackage{geometry}
 \usepackage[a4paper, total={6in, 8in},top=1in]{geometry}
 \usepackage{verbatim}
 \usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{caption}
+
+
+\DeclareCaptionType{mycapequ}[][List of equations]
+\captionsetup[mycapequ]{labelformat=empty}
 
 \title{Clockwork RNN}
 \author{Paul Mustière - David Panou}
@@ -13,62 +21,149 @@
 
 \section{Abstract}
 
-Quickly introduce the RNN Game
+Recurrent Neural Networks have been successfully proved to able to predict sequence outputs for a given input sequence. Such abilities have turned them into being used in a variety of tasks ranging from Text translation.
+However, training long-term memories with recurrent neural networks have been proven to be a difficult tasks because of Vanishing and Exploding Gradient issues. Such issues have led to the development of LSTM.
+This paper introduces a novel way of  splitting the the shared weight parameters in order to specialize each cells on different time-related dependencies leading to a better performance of the simple RNN architecture both in training and generation.
 
 \section{Context}
+\subsection{Recurrent Neural Networks}
 
-Comparition with \textit{https://arxiv.org/pdf/1412.7753v2.pdf} and previous work
+A RNN \cite{srn} is a simple extension of the feedforward neural networks for processing sequential data.
+
+More formally, given a sequence $x = (x_1,x_2,...,x_T)$ the RNN updates its recurrent hidden state $h_t$ by 
+
+\begin{mycapequ}
+\begin{equation}
+ \textbf{h}_t = 
+ \begin{cases}
+	0, & \text{if}\ t = 0 \\
+	\phi(\textbf{h}_t-1,\textbf{x}_t), & \text{otherwise}
+\end{cases}
+\end{equation}
+\caption{Hidden unit update in SRN}
+\end{mycapequ}
+
+Where $\phi$ is a nonlinear function that is usually the composition of the cell activation and an activation function.
+
+The update function of the recurrent hidden state is usually implemented has :
+
+$$
+\textbf{h}_t = g(W\textbf{x}_t + U\textbf{h}_{t-1})
+$$
+
+Where $g$ is a smooth bounded function such as a sigmoid function of $thanh$, $W$ the input weights matrix and $U$ the hidden weight matrix.
+
+The sequence probability can be decomposed using the chain-rule into $$  p(x_1,x_2,...,x_T) = p(x_1)p(x_2|x_1)...p(x_T|x_1,...x_{T-1})  $$
+
+Those models are known as generative RNN or simple RNN (SRN).
+
+Despite the recents success of RNN applications in translation and speech, vanilla RNN are never used in the those tasks. This issue is due to their lack of ability to capture long dependency trend, more formally stated by the Vanishing Gradient or Exploding Gradient issues \cite{vanishing}.
+
+Those issue, makes the Gradient Based optimization methods struggle because of the effect of the short-term dependencies.
+
+This issue has led to further attempts to redefine recurrent neural networks with more sophisticated activation functions in order to adapt them to support longer input dependencies. The well established (Long Short Term Memory) LSTM units \cite{lstm}  are now known to perform well at capturing long-term dependencies and are used in many recent tasks such as machine translation \cite{susts}.
+More recents work to adapt the SRN to support longer time lag during backpropagation include the Gated Recurrent Networks, that control the flow of the back propagated error \cite{grn}. \newline
+
+Despite the interesting approach such methods, by totally exposing the full content of the cell without any control, GRU are diverging from the LSTM approach, a approach that clockwork-RNN refines, we won't go into further detail in this type of approaches. Interested reader can find a comparative studies of both methods  in \cite{empir}.
+
+Other approches focuses on adapting the Gradient Descent algorithms. Such attempts includes Hessian Free optimization \cite{hf_opti}. However, those methods can be coupled with LSTM, GRU or CW-RNN so we won't go into further details.
+
+\subsection{LSTM}
+
+As specified earlier, LSTM uses a specialized architecture that allows information to be stored in a linear unit called \textit{Constant Error Carousel} indefinitely.
+
+Unlike to the recurrent unit which simply computes a weighted sum of the input signal and applies a nonlinear function, each j-th LSTM unit maintains a memory $c_t^j$ at time t. An activation is $h_t^j$ is computed based on the  content of a memory cell $c_j^t$ and an \textit{output gate} that controls the amount of memory exposed to the current information $o_t^j $. The existing memory is forgotten with respect to the value of a \textit{forget gate} and the new memory content is added following the value of a input gate $i_t^j$.
+
+The following equations describe the comportement of those gates and cells 
+
+\[ \begin{array}{lr}
+h_t^j = o_t^jtanh(c_t^j) \\ 
+o_t^j = \sigma(W_o\textbf{x}_t+U_o\textbf{h}_t+V_o\textbf{c}_t) \\
+c_t^j = f_t^jc_{t-1}^j+i_t^j\tilde{c}_t^j \\
+\tilde{c}_t^j = tanh(W_c\textbf{x}_t+U_c\textbf{h}_{t-1})^j
+\end{array}\]
+
+With $V$, $U$ and $W$ respectively the weight matrices related to the memory cell, the hidden units and the input units.
+It is clear that unlike the traditional recurrent units that overrides its content at each time-step, an LSTM units can decide wether to keep its memory thanks to its gate.
+
 
 \section{Clockwork RNN}
 
-\section{Article contribution}
+CW-RNN propose a novel RNN Architecture in which the hidden layer is partitioned into separate modules, running at different time clocks, hence the name.
 
-\section{Paper's results and further analysis}
+This partitioning is done via a decomposition of the input weight matrix $U$ and $W$ the output weight matrix into g block size matrices, $W_H$ thus becoming a block upper triangular matrix where each block correspond to a time step weights parameters.
 
-\section{Our benchmark}
+\[ 
+\textbf{U} =
+\left( \begin{array}{c}
+\textbf{W}_{H_1}\\
+\textbf{.} \\
+\textbf{.} \\
+\textbf{.} \\
+\textbf{W}_{H_g}
+\end{array} \right)\] \\
 
-How do we plain to evaluate our implementations
 
-A quick recap of some article.
+The update of a specific block weights follow the following scheme : 
 
-TODO: Change thebibliography to BibTex (Much faster to use)
+\begin{equation}
+ \textbf{U}_i = 
+ \begin{cases}
+ 	\textbf{U}_{H_i} & \text{for } t \mod t_i = 0 \\
+	\textbf{0}, & \text{otherwise}  \\
+\end{cases}
+\end{equation}
 
-\begin{comment}
+As a result, the low-clock-rate modules process, retain and output the long-term information obtained from the input sequences.
+
+\section{CW-RNN training}
+
+There are several ways to train recurrent neural networks each with its pros and cons. The most popular methods is a direct adaptation of Back Propagation, called Back Propagation Through Time (BPTT) \cite{bptt-1} \cite{bptt-2} that is simply the application of the Gradient Descent optimization scheme to the unfolded RNN. The drawback of BPTT can't be parallelized and is hard to be used in an online paradigm. Other implementation of backpropagation methods includes 
+
+This paper introduces an adaptation of the BPTT algorithm to fit it to the CW-RNN models.
+
+\section{Project roadmap}
+
+\subsection{Implementation}
+Our main objective during this project is to replicate the results obtained in the paper especially the music sequence generation task that "only" involves 320 data points in a [-1,1] scaled, and a hundred of parameters.
+
+A useful implementation would be to compare CW-RNN to vanilla RNN and LSTM has the paper does.
+If we find time, we will extend our implementation to \cite{rnn-mikolov} that uses a context layer in order to catch longer dependencies such as topic information such as a cache models \cite{cache_models}
+
+\subsection{Reinforcement Learning}
+
+The IAR module is actually a Robotic course so we would like to make a connection and adapt this model to use it it this context.
+Using Recurrent Q-Learning \cite{} is an intuitively approach to use RNN to learn the Q-Values and has been used to learn and retain "history features". 
+
+Unfortunately, such methods works well on simple problems and small datasets but have . More recently, Deep Q-Learning \cite{} has yielded proficient controllers for complex tasks. RNN have been successfully stacked with DQN in order to strengthen the Markov Decision Process, leading more robust performances when input are altered. \newline
+
+If we find time, interesting experience would be to test the implementations through the OpenAI gym framework \cite{gym} on, the limit being the computational power required.
+
 \begin{thebibliography}{9}
 
-\bibitem{turing_machines}Graves, Alex, Wayne, Greg, and Danihelka, Ivo. Neural turing machines. arXiv preprint arXiv:1410.5401, 2014.
+\bibitem{vanishing} Hochreiter, Sepp. The vanishing gradient problem during learning recurrent neural nets and problem solutions. International Journal of Uncertainty, Fuzziness and Knowledge-Based Systems, 6(02): 107–116, 1998.
 
-\bibitem{memory_networks} J. Weston, S. Chopra, A. Bordes. Memory Networks. arXiv preprint arXiv:1410.5401, 2014.
+\bibitem{lstm}Hochreiter, Sepp and Schmidhuber, Ju ̈rgen. Long short-term memory. Neural computation, 9(8): 1735–1780, 1997.
 
-\bibitem{turing_complete} Siegelmann, H. T. and Sontag, E. D. (1995). On the computational power of neural nets.
-Journal of computer and system sciences, 50(1):132–150.
+\bibitem{srn} Elman, Jeffrey L. Finding structure in time. Cognitive science, 14(2):179–211, 1990.
 
-\bibitem{stack} S. Das, C.L. Giles, G.Z. Sun, "Learning Context Free Grammars: Limitations of a Recurrent Neural Network with an External Stack Memory," Proc. 14th Annual Conf. of the Cog. Sci. Soc., p. 79, 1992.
+\bibitem{suts} Sequence to Sequence With Neural Networks (Sutskever et al., Google, NIPS 2014)
 
-\bibitem{fast-weights} J. Schmidhuber. Learning to Control Fast-Weight Memories : An Alternative To Dynamic Recurrent Networks 
-\textit{Neural Computation, 4(1):131-139, 1992}. 
+\bibitem{grn} Chung, J., Gülçehre, Ç., Cho, K., and Bengio, Y. (2015a). Gated feedback recurrent neural networks. In ICML’15.
 
-\bibitem{self_learning} Hochreiter, Sepp; Younger, A. Steven; Conwell, Peter R. (2001). "Learning to Learn Using Gradient Descent". \textit{ICANN 2001, 2130: 87–94}
+\bibitem{empir} Chung, J., Gulcehre, C., Cho, K., and Bengio, Y. (2014). Empirical evaluation of gated
+recurrent neural networks on sequence modeling. NIPS’2014 Deep Learning workshop,
+arXiv 1412.3555.
 
-\bibitem{qa1} Berant, Jonathan, Chou, Andrew, Frostig, Roy, and Liang, Percy. Semantic parsing on freebase from question-answer pairs. \textit{In EMNLP, pp. 1533–1544, 2013.}
+\bibitem{hf_opti} Martens, J. and Sutskever, I. Learning recurrent neural net- works with Hessian-free optimization. In Getoor, L. and Scheffer, T. (eds.), Proceedings of the 28th International Conference on Machine Learning (ICML-11), pp. 1033– 1040, New York, NY, USA, June 2011. ACM. ISBN 978-1-4503-0619-5.
 
-\bibitem{qa2} Berant, Jonathan, Srikumar, Vivek, Chen, Pei-Chun, Huang, Brad, Manning, Christopher D, Van- der Linden, Abby, Harding, Brittany, and Clark, Peter. Modeling biological processes for reading comprehension. \textit{In Proc. EMNLP, 2014.}
+\bibitem{cache_models} Kuhn, Roland and De Mori, Renato. A cache-based natural language model for speech recognition. Pattern Analysis and Machine Intelligence, IEEE Transactions on, 12(6):570–583, 1990.
 
-\bibitem{switchboard} Jurafsky, Daniel, Rebecca Bates, Noah Coccaro, Rachel Martin, Marie Meteer, Klaus Ries, Elizabeth Shriberg, Andreas Stolcke, Paul Taylor, and Carol Van Ess-Dykema. 1998. Switchboard Discourse Language Modeling Project Report Research Note 30, Center for Speech and Language Processing, Johns Hopkins University, Baltimore, MD
+\bibitem{bptt-1} Williams, Ronald J and Zipser, David. Gradient-based learning algorithms for recurrent networks and their computational complexity. Back-propagation: Theory, architectures and applications, pp. 433–486, 1995.
 
-\bibitem{fractalnet} Gustav Larsson, Michael Maire, and Gregory Shakhnarovich. Fractalnet: Ultra-deep neural networks without residuals. arXiv preprint arXiv:1605.07648, 2016.
+\bibitem{bptt-2} Werbos, Paul J. Generalization of backpropagation with application to a recurrent gas market model. Neural Networks, 1(4):339–356, 1988.
 
-\bibitem{wavenet} van den Oord, A. et al. Wavenet: A generative model for raw audio. arXiv preprint arXiv:1609.03499 (2016). 1609.03499
-
-\bibitem{quald} http://qald.sebastianwalter.org/
-
-\bibitem{bordes} Bordes, Antoine, Weston, Jason, and Usunier, Nicolas. Open question answering with weakly su- pervised embedding models. ECML-PKDD, 2014b.
-
-\bibitem{fader} Fader, Anthony, Zettlemoyer, Luke, and Etzioni, Oren. Paraphrase-driven learning for open question answering. In ACL, pp. 1608–1618, 2013.
-
-\bibitem{sutskever} Sutskever, I. Vinyals, O., Le. Q. V. Sequence to sequence learning with neural networks. In Proc. Advances in Neural Information Processing Systems 27 3104–3112 (2014). 
-
+\bibitem{gym} https://gym.openai.com/
 \end{thebibliography}
-\end{comment}
 
 \end{document}
