@@ -1,5 +1,6 @@
 from __future__ import division
 import scipy.io.wavfile
+import numpy as np
 from numpy import abs, sign, array
 from collections import Counter
 import matplotlib.pyplot as plt
@@ -25,15 +26,12 @@ class preprocess(object):
 
 
     def normalize(self, encoding=16, verbose=False):
+        # Normalization between -1.0 and 1.0
+        self.nsignal = self.signal.astype(np.int64)
+        M = max(self.nsignal)
+        m = min(self.nsignal)
 
-    	def truncated(value):
-    		s = sign(value)
-    		value = abs(value)
-    		if value > 1:
-    			return 1 * s
-    		else:
-    			return value * s
-    	self.nsignal = array(map(truncated, self.signal / 2**encoding))
+        self.nsignal = -1.0 + 2.0 * (self.nsignal - float(m)) / float(M - m)
     	if verbose:
     		print(self.nsignal)
 
