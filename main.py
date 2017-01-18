@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import argparse
 from preprocess import preprocess
+import matplotlib.pyplot as plt
 
 from models.clockwork_rnn import ClockworkRNN
 if __name__ == '__main__':
@@ -63,3 +64,19 @@ if __name__ == '__main__':
                 feed_dict = data_dict)
 
             log_writer.add_summary(results[1], global_step = tf.train.global_step(sess, clockworkRNN.global_step))
+
+        # After training, do a final pass evaluate & plot the result
+        error, outputs = sess.run([clockworkRNN.loss, clockworkRNN.outputs], feed_dict = data_dict)
+        outputs = outputs.reshape(-1)
+        ground_truth = targets.reshape(-1)
+
+        print(outputs)
+        # Final result
+        print('')
+        print('')
+        print('After {} epochs, error is {}'.format(config['max_epochs'], error))
+
+        plt.plot(ground_truth, '--')
+        plt.plot(outputs)
+        plt.legend(['Target signal', 'Clockwork RNN output'])
+        plt.show()
