@@ -44,6 +44,14 @@ class ClockworkRNN():
 
         self.create_summaries()
 
+        # Count number of parameters used
+        self.num_parameters = 0
+        for v in tf.trainable_variables():
+            parameters = 1
+            for dim in v.get_shape():
+                parameters *= int(dim)
+            self.num_parameters += parameters
+
     def create_model(self):
         # Model options
         weights_initializer = tf.random_normal_initializer(stddev = 0.1)
@@ -127,7 +135,7 @@ class ClockworkRNN():
 
     def create_summaries(self):
         with tf.variable_scope('train'):
-            learning_rate_summary = tf.scalar_summary('learning_rate', self.learning_rate)
-            loss_summary = tf.scalar_summary('loss', self.loss)
+            learning_rate_summary = tf.summary.scalar('learning_rate', self.learning_rate)
+            loss_summary = tf.summary.scalar('loss', self.loss)
 
-        self.summaries = tf.merge_summary([learning_rate_summary, loss_summary])
+        self.summaries = tf.summary.merge([learning_rate_summary, loss_summary])

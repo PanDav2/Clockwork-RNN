@@ -6,51 +6,56 @@ import argparse
 from preprocess import preprocess
 
 from models.clockwork_rnn import ClockworkRNN
-NUM_STEP = 100
 if __name__ == '__main__':
     ### Create the Clockwork RNN ###
     config = {
         'input_dim': 0,
-        'hidden_dim': 90,
+        'hidden_dim': 9,
         'output_dim': 1,
         'periods': [1, 2, 4, 8, 16, 32, 64, 128, 256],
-        'num_steps': NUM_STEP,
+        'num_steps': 320,
 
         'learning_rate': 3e-4,
         'learning_rate_step': 200,
         'learning_rate_decay': 0.95,
         'momentum': 0.95,
-        'max_epochs': 2000
+        'max_epochs': 5000
     }
 
+    ### Create the model ###
     clockworkRNN = ClockworkRNN(config)
-    # We are feeding the wav file
-    p = preprocess() ## DEFAULT FILENAME IS IN PREPROCESS
+    print('The Clockwork RNN has {} parameters'.format(clockworkRNN.num_parameters))
+
+    # Change this for a different log/ subfolder
+    experiment_name = 'clockwork_rnn_{}params'.format(clockworkRNN.num_parameters)
+
+    ### Load data ###
+
+    # Use fake data: generated from a sinusoid
+    # targets = np.reshape(np.sin(np.arange(config['num_steps'])), (config['num_steps'], config['output_dim']))
+
+    # Use a WAV file and normalize it
+    p = preprocess()
+    p.slice(0, config['num_steps']) # Select values BEFORE normalization
     p.normalize()
-    # plotting the signal we are operating on
-    p.show_signal()
-    signal = p.seek(1,NUM_STEP)
-    # plotting the signal we will feed into the RNN
-    p.show_signal(signal)
-    
+    # Reshape signal for model
+    targets = p.get_signal().reshape((-1, 1))
+
+    # Plot signal
+    # p.show_signal()
 
     ### Create a session ###
     with tf.Session() as sess:
         # Initialize variables
-        tf.initialize_all_variables().run()
+        tf.global_variables_initializer().run()
 
         # Create a writer
-        log_writer = tf.train.SummaryWriter('log', sess.graph, flush_secs = 2)
+        log_writer = tf.summary.FileWriter('log/' + experiment_name, sess.graph, flush_secs = 2)
 
-        # Load data
-
-
-        # Dummy data for now
         data_dict = {
             clockworkRNN.initial_state: np.zeros((config['hidden_dim'],)),
             clockworkRNN.inputs: np.zeros((config['num_steps'], config['input_dim'])),
-            #clockworkRNN.targets: np.reshape(np.sin(np.arange(config['num_steps'])), (config['num_steps'], config['output_dim']))
-            clockworkRNN.targets: signal.reshape((-1,1))
+            clockworkRNN.targets: targets
         }
 
         for epoch in range(config['max_epochs']):
