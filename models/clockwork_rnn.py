@@ -14,13 +14,16 @@ class ClockworkRNN():
                 - Hidden state dimension: hidden_dim
                 - Output dimension: output_dim
                 - Module periods: periods
+                - Number of unfolded steps: num_steps
 
-                - Number of steps: num_steps
+                - Learning rate: learning_rate
+                - Learning rate: learning_rate_step
+                - Learning rate: learning_rate_decay
+                - Momentum: momentum
         """
-        print('Config: {}'.format(config))
 
         # Check config
-        for v in ['input_dim', 'hidden_dim', 'output_dim', 'periods', 'num_steps']:
+        for v in ['input_dim', 'hidden_dim', 'output_dim', 'periods', 'num_steps', 'learning_rate', 'learning_rate_step', 'learning_rate_decay', 'momentum']:
             if v not in config:
                 print('Missing config[\'{}\']'.format(v))
                 exit(1)
@@ -37,6 +40,10 @@ class ClockworkRNN():
 
         self.create_model()
 
+        self.create_optimizer()
+
+        self.create_summaries()
+
     def create_model(self):
         # Model options
         weights_initializer = tf.random_normal_initializer(stddev = 0.1)
@@ -47,11 +54,11 @@ class ClockworkRNN():
 
         # Create weights & biases
 
-        with tf.variable_scope('input'):
+        with tf.variable_scope('input_parameters'):
             Wi = tf.get_variable('weights', [self.config['input_dim'], self.config['hidden_dim']], initializer = weights_initializer)
             bi = tf.get_variable('biases', self.config['hidden_dim'], initializer = biases_initializer)
 
-        with tf.variable_scope('hidden'):
+        with tf.variable_scope('hidden_parameters'):
             Wh = tf.get_variable('weights', [self.config['hidden_dim'], self.config['hidden_dim']], initializer = weights_initializer)
             bh = tf.get_variable('biases', self.config['hidden_dim'], initializer = biases_initializer)
 
@@ -59,14 +66,68 @@ class ClockworkRNN():
             block_size = self.config['hidden_dim'] / len(self.config['periods'])
             for i in range(len(self.config['periods'])):
                 clockwork_mask[i * block_size:(i+1) * block_size, i * block_size:] = 1.0
-            clockwork_mask = tf.constant(clockwork_mask, name = 'clockwork_mask')
+            clockwork_mask = tf.constant(clockwork_mask, name = 'clockwork_mask', dtype = tf.float32)
 
-            Wh = tf.matmul(clockwork_mask, Wh)
+            Wh = tf.mul(clockwork_mask, Wh)
 
-        with tf.variable_scope('output'):
+        with tf.variable_scope('output_parameters'):
             Wo = tf.get_variable('weights', [self.config['hidden_dim'], self.config['output_dim']], initializer = weights_initializer)
             bo = tf.get_variable('biases', self.config['output_dim'], initializer = biases_initializer)
 
+        state = tf.expand_dims(self.initial_state, 0, name = 'state')
+        outputs = []
 
-        # return tf.get_variable('weights', shape, initializer = tf.random_normal_initializer(stddev=0.01))
-        # return tf.get_variable('biases', shape, initializer = tf.zeros_initializer)
+        with tf.variable_scope('clockwork_rnn'):
+            for t in range(self.config['num_steps']):
+                for i in range(len(self.config['periods'])):
+                    if t % self.config['periods'][::-1][i] == 0:
+                        active_rows = block_size * (len(self.config['periods'])-i)
+                        break
+
+                x = tf.slice(self.inputs, [t, 0], [1, -1])
+
+                # Compute the partial new state
+                Wi_x = tf.matmul(x, tf.slice(Wi, [0, 0], [-1, active_rows]))
+                Wi_x = tf.nn.bias_add(Wi_x, tf.slice(bi, [0], [active_rows]), name = 'Wi_x')
+
+                Wh_y = tf.matmul(state, tf.slice(Wh, [0, 0], [-1, active_rows]))
+                Wh_y = tf.nn.bias_add(Wh_y, tf.slice(bh, [0], [active_rows]), name = 'Wh_y')
+
+                partial_state = hidden_activation(tf.add(Wi_x, Wh_y))
+
+                # Concatenate the partial state with old state values
+                # for unactivated blocks
+                state = tf.concat(1, [partial_state, tf.slice(state, [0, active_rows], [-1, -1])], name = 'new_state')
+
+                # Compute the new output
+                Wo_s = tf.matmul(state, Wo)
+                Wo_s = tf.nn.bias_add(Wo_s, bo, name = 'Wo_s')
+
+                output = output_activation(Wo_s, name = 'output')
+                outputs.append(output)
+
+            self.outputs = tf.concat(0, outputs, name = 'outputs')
+
+            # Compute the loss
+            self.errors = tf.reduce_sum(tf.square(self.targets - self.outputs), reduction_indices = 1)
+            self.loss  = tf.reduce_mean(self.errors, name = 'loss')
+
+    def create_optimizer(self):
+        self.global_step = tf.Variable(0, trainable = False, name = 'global_step')
+        self.learning_rate = tf.train.exponential_decay(
+                                self.config['learning_rate'],       # Base learning rate.
+                                self.global_step,                   # Current index into the dataset.
+                                self.config['learning_rate_step'],  # Decay step.
+                                self.config['learning_rate_decay'], # Decay rate.
+                                staircase = True)
+
+        self.optimizer = tf.train.MomentumOptimizer(self.config['learning_rate'], self.config['momentum'], use_nesterov = True)
+
+        self.train_step = self.optimizer.minimize(self.loss, global_step = self.global_step)
+
+    def create_summaries(self):
+        with tf.variable_scope('train'):
+            learning_rate_summary = tf.scalar_summary('learning_rate', self.learning_rate)
+            loss_summary = tf.scalar_summary('loss', self.loss)
+
+        self.summaries = tf.merge_summary([learning_rate_summary, loss_summary])
