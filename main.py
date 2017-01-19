@@ -4,9 +4,12 @@ import numpy as np
 import tensorflow as tf
 import argparse
 from preprocess import preprocess
-
 from models.clockwork_rnn import ClockworkRNN
+
+
 NUM_STEP = 100
+PLOT = False
+
 if __name__ == '__main__':
     ### Create the Clockwork RNN ###
     config = {
@@ -24,14 +27,18 @@ if __name__ == '__main__':
     }
 
     clockworkRNN = ClockworkRNN(config)
-    # We are feeding the wav file
+    
+
+    ## Preprocessing the wav file
+
     p = preprocess() ## DEFAULT FILENAME IS IN PREPROCESS
     p.normalize()
-    # plotting the signal we are operating on
-    p.show_signal()
+    # plotting the full signal we are operating on
     signal = p.seek(1,NUM_STEP)
     # plotting the signal we will feed into the RNN
-    p.show_signal(signal)
+    if PLOT :
+        p.show_signal()
+        p.show_signal(signal)
     
 
     ### Create a session ###

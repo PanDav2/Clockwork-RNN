@@ -5,13 +5,12 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import argparse
 
+__doc__ = "This file preprocess wav data to feed it into the RNN"
+
 DEFAULT_FILENAME = 'data/gen/bad_taste.wav'
 ENCODING_VALUES = [2, 4, 8, 16, 32]
 NUM_POINTS = 500
 START_POS = 0
-
-__doc__ = "This file preprocess the data to feed it into the RNN"
-
 
 class preprocess(object):
     def __init__(self, filename=DEFAULT_FILENAME, encoding=16):
@@ -78,6 +77,8 @@ def show_process():
 	p.seek(10,520)
 	print(len(p.seek(10,520)))
 
+def process_file():
+	pass
 
 if __name__ == '__main__':
 	args = {}
@@ -88,11 +89,7 @@ if __name__ == '__main__':
 	parser.add_argument('-num_points',default=NUM_POINTS,help="Number of points to consider in the signal",type=int)
 	parser.add_argument('-start_pos',default=START_POS,help="starting position of the signal",type=int)
 	args = parser.parse_args()
-	args = vars(args)
-
-	#print(args)
-
-	# parser.add_argument()
-	# parser.add_argument()
+	#args = vars(args)
+	print(args)
 
    	#show_process()
