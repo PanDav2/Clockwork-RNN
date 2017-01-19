@@ -14,14 +14,14 @@ if __name__ == '__main__':
         'hidden_dim': 9,
         'output_dim': 1,
         'periods': [1, 2, 4, 8, 16, 32, 64, 128, 256],
-        'num_steps': 320,
+        'num_steps': 10,
 
-        'learning_rate': 3e-4,
-        'learning_rate_step': 200,
-        'learning_rate_decay': 0.95,
+        'learning_rate': 1e-2,
+        'learning_rate_step': 50,
+        'learning_rate_decay': 0.9,
+        'optimizer': 'rmsprop',
         'momentum': 0.95,
-        'max_gradient': 10,
-        'max_epochs': 5000
+        'max_epochs': 1000
     }
 
     ### Create the model ###
@@ -71,7 +71,6 @@ if __name__ == '__main__':
         outputs = outputs.reshape(-1)
         ground_truth = targets.reshape(-1)
 
-        print(outputs)
         # Final result
         print('')
         print('')

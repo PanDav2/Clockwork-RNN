@@ -19,12 +19,12 @@ class ClockworkRNN():
                 - Learning rate: learning_rate
                 - Learning rate: learning_rate_step
                 - Learning rate: learning_rate_decay
+                - Optimized used (momentum, rmsprop): optimizer
                 - Momentum: momentum
-                - Gradient clipping (by norm): max_gradient
         """
 
         # Check config
-        for v in ['input_dim', 'hidden_dim', 'output_dim', 'periods', 'num_steps', 'learning_rate', 'learning_rate_step', 'learning_rate_decay', 'momentum', 'max_gradient']:
+        for v in ['input_dim', 'hidden_dim', 'output_dim', 'periods', 'num_steps', 'learning_rate', 'learning_rate_step', 'learning_rate_decay', 'optimizer', 'momentum']:
             if v not in config:
                 print('Missing config[\'{}\']'.format(v))
                 exit(1)
@@ -137,7 +137,13 @@ class ClockworkRNN():
                                 self.config['learning_rate_decay'], # Decay rate.
                                 staircase = True)
 
-        self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.config['momentum'], use_nesterov = True)
+        if self.config['optimizer'] == 'momentum':
+            self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.config['momentum'], use_nesterov = True)
+        elif self.config['optimizer'] == 'rmsprop':
+            self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
+        else:
+            print('Unknown optimizer {}'.format(self.config['optimizer']))
+            exit(1)
 
         self.train_step = self.optimizer.minimize(self.loss, global_step = self.global_step)
 
