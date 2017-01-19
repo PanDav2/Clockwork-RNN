@@ -135,7 +135,7 @@ class ClockworkRNN():
                                 self.global_step,                   # Current index into the dataset.
                                 self.config['learning_rate_step'],  # Decay step.
                                 self.config['learning_rate_decay'], # Decay rate.
-                                staircase = True)
+                                staircase = False)
 
         if self.config['optimizer'] == 'momentum':
             self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.config['momentum'], use_nesterov = True)
