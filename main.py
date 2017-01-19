@@ -14,10 +14,10 @@ if __name__ == '__main__':
     ### Create the Clockwork RNN ###
     config = {
         'input_dim': 0,
-        'hidden_dim': 9,
+        'hidden_dim': 36,
         'output_dim': 1,
         'periods': [1, 2, 4, 8, 16, 32, 64, 128, 256],
-        'num_steps': 10,
+        'num_steps': 320,
 
         'learning_rate': 1e-2,
         'learning_rate_step': 50,
