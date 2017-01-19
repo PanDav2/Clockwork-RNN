@@ -25,7 +25,7 @@ class LSTM():
         """
 
         # Check config
-        for v in ['input_dim', 'hidden_dim', 'output_dim', 'num_steps', 'learning_rate', 'learning_rate_step', 'learning_rate_decay', 'momentum']:
+        for v in ['input_dim', 'hidden_dim', 'output_dim', 'num_steps', 'learning_rate', 'learning_rate_step', 'learning_rate_decay', 'momentum','optimizer']:
             if v not in config:
                 print('Missing config[\'{}\']'.format(v))
                 exit(1)
@@ -39,6 +39,15 @@ class LSTM():
         self.create_model()
         self.create_optimizer()
         self.create_summaries()
+
+        # Count number of parameters used
+        self.num_parameters = 0
+        self.num_parameters += self.config['input_dim'] * (self.config['hidden_dim'] + 1) # Input weights/biases
+        self.num_parameters += self.config['output_dim'] * (self.config['hidden_dim'] + 1) # Output weights/biases
+
+        self.num_parameters += self.config['hidden_dim'] # Hidden biases
+        # Hidden weights: upper-triangular matrix of num_periods blocks, each of size block_size*block_size
+        self.num_parameters += (self.num_periods * (self.num_periods + 1) / 2) * (self.block_size * self.block_size)
 
 	def create_model(self):
 		# Model options

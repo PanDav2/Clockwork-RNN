@@ -15,6 +15,9 @@ described in the paper, but the implementation should be able
 to handle other tasks.
 
 To monitor the training, you can use TensorBoard:
-`̀``
+```
 tensorboard --reload_interval 2 --logdir log
-`̀``
+```
+
+## Results
+The following picture show the obtain MSE loss obtain on the generation task [alt text](pic/learning.pdf "learning parameters")
