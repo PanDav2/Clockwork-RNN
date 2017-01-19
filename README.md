@@ -20,4 +20,5 @@ tensorboard --reload_interval 2 --logdir log
 ```
 
 ## Results
-The following picture show the obtain MSE loss obtain on the generation task [alt text](pic/learning.pdf "learning parameters")
+The following picture show the obtain MSE loss obtain on the generation task 
+![alt text](pic/learning.pdf "learning parameters")
