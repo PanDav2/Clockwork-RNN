@@ -33,6 +33,7 @@ class ClockworkRNN():
 
         if config['hidden_dim'] % len(config['periods']) != 0:
             print('Cannot divide the hidden state into {} blocks'.format(len(config['periods'])))
+            exit(1)
 
         self.config = config
         self.num_periods = len(self.config['periods'])
