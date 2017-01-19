@@ -33,6 +33,8 @@ class ClockworkRNN():
             print('Cannot divide the hidden state into {} blocks'.format(len(config['periods'])))
 
         self.config = config
+        self.num_periods = len(self.config['periods'])
+        self.block_size = self.config['hidden_dim'] / self.num_periods
 
         # Create placeholders for input & targets
         self.inputs = tf.placeholder(tf.float32, shape = [self.config['num_steps'], self.config['input_dim']], name = 'inputs')
@@ -47,11 +49,13 @@ class ClockworkRNN():
 
         # Count number of parameters used
         self.num_parameters = 0
-        for v in tf.trainable_variables():
-            parameters = 1
-            for dim in v.get_shape():
-                parameters *= int(dim)
-            self.num_parameters += parameters
+        self.num_parameters += self.config['input_dim'] * (self.config['hidden_dim'] + 1) # Input weights/biases
+        self.num_parameters += self.config['output_dim'] * (self.config['hidden_dim'] + 1) # Output weights/biases
+        self.num_parameters += self.num_periods # Periods
+
+        self.num_parameters += self.config['hidden_dim'] # Hidden biases
+        # Hidden weights: upper-triangular matrix of num_periods blocks, each of size block_size*block_size
+        self.num_parameters += (self.num_periods * (self.num_periods + 1) / 2) * (self.block_size * self.block_size)
 
     def create_model(self):
         # Model options
@@ -75,9 +79,8 @@ class ClockworkRNN():
             bh = tf.get_variable('biases', [self.config['hidden_dim'], 1], initializer = biases_initializer)
 
             clockwork_mask = np.zeros((self.config['hidden_dim'], self.config['hidden_dim']))
-            block_size = self.config['hidden_dim'] / len(self.config['periods'])
-            for i in range(len(self.config['periods'])):
-                clockwork_mask[i * block_size:(i+1) * block_size, i * block_size:] = 1.0
+            for i in range(self.num_periods):
+                clockwork_mask[i * self.block_size:(i+1) * self.block_size, i * self.block_size:] = 1.0
             clockwork_mask = tf.constant(clockwork_mask, name = 'clockwork_mask', dtype = tf.float32)
 
             Wh = tf.mul(clockwork_mask, Wh)
@@ -91,9 +94,9 @@ class ClockworkRNN():
 
         with tf.variable_scope('clockwork_rnn'):
             for t in range(self.config['num_steps']):
-                for i in range(len(self.config['periods'])):
+                for i in range(self.num_periods):
                     if t % self.config['periods'][::-1][i] == 0:
-                        active_rows = block_size * (len(self.config['periods'])-i)
+                        active_rows = self.block_size * (self.num_periods-i)
                         break
 
                 x = tf.slice(self.inputs, [t, 0], [1, -1])
