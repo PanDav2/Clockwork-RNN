@@ -5,9 +5,11 @@ class ClockworkRNN():
     """
         Implementation of Clockwork RNN based on
         A Clockwork RNN - Koutnik et al. 2014 [arXiv, https://arxiv.org/abs/1402.3511]
+
+        Recommended learning rate of 1e-2
     """
 
-    def __init__(self, config):
+    def __init__(self, config, initial_state = None):
         """
             Config parameters:
                 - Input dimension: input_dim
@@ -38,7 +40,7 @@ class ClockworkRNN():
 
         # Create placeholders for inputs & targets
         self.inputs = tf.placeholder(tf.float32, shape = [self.config['num_steps'], self.config['input_dim']], name = 'inputs')
-        self.initial_state = tf.placeholder(tf.float32, shape = [self.config['hidden_dim']], name = 'initial_state')
+        self.initial_state = initial_state
         self.targets = tf.placeholder(tf.float32, shape = [self.config['num_steps'], self.config['output_dim']], name = 'targets')
 
         self.create_model()
@@ -89,7 +91,10 @@ class ClockworkRNN():
             Wo = tf.get_variable('weights', [self.config['output_dim'], self.config['hidden_dim']], initializer = weights_initializer)
             bo = tf.get_variable('biases', [self.config['output_dim'], 1], initializer = biases_initializer)
 
-        state = tf.reshape(self.initial_state, (-1, 1), name = 'state')
+        if self.initial_state:
+            state = self.initial_state
+        else:
+            state = tf.zeros((self.config['hidden_dim'], 1))
         outputs = []
 
         with tf.variable_scope('clockwork_rnn'):

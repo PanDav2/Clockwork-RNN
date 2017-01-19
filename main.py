@@ -5,6 +5,7 @@ import tensorflow as tf
 import argparse
 from preprocess import preprocess
 from models.clockwork_rnn import ClockworkRNN
+from models.lstm import LSTM
 import matplotlib.pyplot as plt
 
 NUM_STEP = 100
@@ -28,12 +29,17 @@ if __name__ == '__main__':
     }
 
     ### Create the model ###
-    clockworkRNN = ClockworkRNN(config)
+    model_type = 'clockwork_rnn'
 
-    print('The Clockwork RNN has {} parameters'.format(clockworkRNN.num_parameters))
+    if model_type == 'clockwork_rnn':
+        model = ClockworkRNN(config)
+        print('The Clockwork RNN has {} parameters'.format(model.num_parameters))
+    elif model_type == 'lstm':
+        model = LSTM(config)
+        print('The LSTM has {} parameters'.format(model.num_parameters))
 
     # Change this for a different log/ subfolder
-    experiment_name = 'clockwork_rnn_{}params'.format(clockworkRNN.num_parameters)
+    experiment_name = '{}_{}params'.format(model_type, model.num_parameters)
 
     ### Load data ###
 
@@ -59,19 +65,18 @@ if __name__ == '__main__':
         log_writer = tf.summary.FileWriter('log/' + experiment_name, sess.graph, flush_secs = 2)
 
         data_dict = {
-            clockworkRNN.initial_state: np.zeros((config['hidden_dim'],)),
-            clockworkRNN.inputs: np.zeros((config['num_steps'], config['input_dim'])),
-            clockworkRNN.targets: targets
+            model.inputs: np.zeros((config['num_steps'], config['input_dim'])),
+            model.targets: targets
         }
 
         for epoch in range(config['max_epochs']):
-            results = sess.run([clockworkRNN.train_step, clockworkRNN.summaries],
+            results = sess.run([model.train_step, model.summaries],
                 feed_dict = data_dict)
 
-            log_writer.add_summary(results[1], global_step = tf.train.global_step(sess, clockworkRNN.global_step))
+            log_writer.add_summary(results[1], global_step = tf.train.global_step(sess, model.global_step))
 
         # After training, do a final pass evaluate & plot the result
-        error, outputs = sess.run([clockworkRNN.loss, clockworkRNN.outputs], feed_dict = data_dict)
+        error, outputs = sess.run([model.loss, model.outputs], feed_dict = data_dict)
         outputs = outputs.reshape(-1)
         ground_truth = targets.reshape(-1)
 
@@ -82,5 +87,5 @@ if __name__ == '__main__':
 
         plt.plot(ground_truth, '--')
         plt.plot(outputs)
-        plt.legend(['Target signal', 'Clockwork RNN output'])
+        plt.legend(['Target signal', '{} output'.format(model_type)])
         plt.show()
