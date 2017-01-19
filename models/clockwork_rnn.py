@@ -19,7 +19,7 @@ class ClockworkRNN():
                 - Learning rate: learning_rate
                 - Learning rate: learning_rate_step
                 - Learning rate: learning_rate_decay
-                - Optimized used (momentum, rmsprop): optimizer
+                - Optimizer used (momentum, rmsprop): optimizer
                 - Momentum: momentum
         """
 
@@ -36,7 +36,7 @@ class ClockworkRNN():
         self.num_periods = len(self.config['periods'])
         self.block_size = self.config['hidden_dim'] / self.num_periods
 
-        # Create placeholders for input & targets
+        # Create placeholders for inputs & targets
         self.inputs = tf.placeholder(tf.float32, shape = [self.config['num_steps'], self.config['input_dim']], name = 'inputs')
         self.initial_state = tf.placeholder(tf.float32, shape = [self.config['hidden_dim']], name = 'initial_state')
         self.targets = tf.placeholder(tf.float32, shape = [self.config['num_steps'], self.config['output_dim']], name = 'targets')
@@ -99,7 +99,7 @@ class ClockworkRNN():
                         active_rows = self.block_size * (self.num_periods-i)
                         break
 
-                x = tf.slice(self.inputs, [t, 0], [1, -1])
+                x = tf.reshape(tf.slice(self.inputs, [t, 0], [1, -1]), (-1, 1), name = 'input')
 
                 # Compute the partial new state
                 if self.config['input_dim'] != 0:
