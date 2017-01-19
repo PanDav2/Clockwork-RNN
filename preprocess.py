@@ -1,5 +1,6 @@
 from __future__ import division
 import scipy.io.wavfile
+import numpy as np
 from numpy import abs, sign, array
 from collections import Counter
 import matplotlib.pyplot as plt
@@ -22,17 +23,22 @@ class preprocess(object):
         self.filename = filename
         self.rate, self.signal = scipy.io.wavfile.read(filename)
 
+    def slice(self, pos, dur):
+        self.signal = self.signal[pos:pos+dur]
+
+    def get_signal(self, stype='normalized'):
+		if stype == 'normalized':
+		    return self.nsignal
+		else:
+			return self.signal
 
     def normalize(self, encoding=16, verbose=False):
+        # Normalization between -1.0 and 1.0
+        self.nsignal = self.signal.astype(np.int64)
+        M = max(self.nsignal)
+        m = min(self.nsignal)
 
-    	def truncated(value):
-    		s = sign(value)
-    		value = abs(value)
-    		if value > 1:
-    			return 1 * s
-    		else:
-    			return value * s
-    	self.nsignal = array(map(truncated, self.signal / 2**encoding))
+        self.nsignal = -1.0 + 2.0 * (self.nsignal - float(m)) / float(M - m)
     	if verbose:
     		print(self.nsignal)
 
@@ -45,23 +51,6 @@ class preprocess(object):
 		plt.figure()
 		plt.plot(signal,"-x",alpha=0.5)
 		plt.show()
-
-    def seek(self,pos,dur,stype='normalized'):
-    	## ADD A TEST
-    	send = len(self.signal)
-    	sbeg = len(self.signal)
-    	if pos>send:
-    		pos = send-dur
-    	if pos+dur>send:
-    		end = send
-    	else:
-    		send = pos+dur
-    	if stype=='normalized':
-    		sig = self.nsignal[pos:pos+dur].reshape((-1,1))
-    		return sig
-    	else:
-    		sig =  self.signal[pos:pos+dur].reshape((-1,1))
-    		return sig
 
 def show_process():
 	p = preprocess(DEFAULT_FILENAME)
