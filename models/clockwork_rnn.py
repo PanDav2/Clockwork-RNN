@@ -20,10 +20,11 @@ class ClockworkRNN():
                 - Learning rate: learning_rate_step
                 - Learning rate: learning_rate_decay
                 - Momentum: momentum
+                - Gradient clipping (by norm): max_gradient
         """
 
         # Check config
-        for v in ['input_dim', 'hidden_dim', 'output_dim', 'periods', 'num_steps', 'learning_rate', 'learning_rate_step', 'learning_rate_decay', 'momentum']:
+        for v in ['input_dim', 'hidden_dim', 'output_dim', 'periods', 'num_steps', 'learning_rate', 'learning_rate_step', 'learning_rate_decay', 'momentum', 'max_gradient']:
             if v not in config:
                 print('Missing config[\'{}\']'.format(v))
                 exit(1)
@@ -58,17 +59,20 @@ class ClockworkRNN():
         biases_initializer = tf.zeros_initializer
 
         hidden_activation = tf.tanh
-        output_activation = tf.sigmoid
+        output_activation = tf.tanh
 
         # Create weights & biases
 
-        with tf.variable_scope('input_parameters'):
-            Wi = tf.get_variable('weights', [self.config['input_dim'], self.config['hidden_dim']], initializer = weights_initializer)
-            bi = tf.get_variable('biases', self.config['hidden_dim'], initializer = biases_initializer)
+        if self.config['input_dim'] != 0:
+            with tf.variable_scope('input_parameters'):
+                Wi = tf.get_variable('weights', [self.config['hidden_dim'], self.config['input_dim']], initializer = weights_initializer)
+                bi = tf.get_variable('biases', [self.config['hidden_dim'], 1], initializer = biases_initializer)
+        else:
+            Wi_x = tf.constant(0, tf.float32)
 
         with tf.variable_scope('hidden_parameters'):
             Wh = tf.get_variable('weights', [self.config['hidden_dim'], self.config['hidden_dim']], initializer = weights_initializer)
-            bh = tf.get_variable('biases', self.config['hidden_dim'], initializer = biases_initializer)
+            bh = tf.get_variable('biases', [self.config['hidden_dim'], 1], initializer = biases_initializer)
 
             clockwork_mask = np.zeros((self.config['hidden_dim'], self.config['hidden_dim']))
             block_size = self.config['hidden_dim'] / len(self.config['periods'])
@@ -79,10 +83,10 @@ class ClockworkRNN():
             Wh = tf.mul(clockwork_mask, Wh)
 
         with tf.variable_scope('output_parameters'):
-            Wo = tf.get_variable('weights', [self.config['hidden_dim'], self.config['output_dim']], initializer = weights_initializer)
-            bo = tf.get_variable('biases', self.config['output_dim'], initializer = biases_initializer)
+            Wo = tf.get_variable('weights', [self.config['output_dim'], self.config['hidden_dim']], initializer = weights_initializer)
+            bo = tf.get_variable('biases', [self.config['output_dim'], 1], initializer = biases_initializer)
 
-        state = tf.expand_dims(self.initial_state, 0, name = 'state')
+        state = tf.reshape(self.initial_state, (-1, 1), name = 'state')
         outputs = []
 
         with tf.variable_scope('clockwork_rnn'):
@@ -95,21 +99,22 @@ class ClockworkRNN():
                 x = tf.slice(self.inputs, [t, 0], [1, -1])
 
                 # Compute the partial new state
-                Wi_x = tf.matmul(x, tf.slice(Wi, [0, 0], [-1, active_rows]))
-                Wi_x = tf.nn.bias_add(Wi_x, tf.slice(bi, [0], [active_rows]), name = 'Wi_x')
+                if self.config['input_dim'] != 0:
+                    Wi_x = tf.matmul(tf.slice(Wi, [0, 0], [active_rows, -1]), x)
+                    Wi_x = tf.add(tf.slice(bi, [0, 0], [active_rows, -1]), Wi_x, name = 'Wi_x')
 
-                Wh_y = tf.matmul(state, tf.slice(Wh, [0, 0], [-1, active_rows]))
-                Wh_y = tf.nn.bias_add(Wh_y, tf.slice(bh, [0], [active_rows]), name = 'Wh_y')
+                Wh_y = tf.matmul(tf.slice(Wh, [0, 0], [active_rows, -1]), state)
+                Wh_y = tf.add(tf.slice(bh, [0, 0], [active_rows, -1]), Wh_y, name = 'Wh_y')
 
                 partial_state = hidden_activation(tf.add(Wi_x, Wh_y))
 
                 # Concatenate the partial state with old state values
                 # for unactivated blocks
-                state = tf.concat(1, [partial_state, tf.slice(state, [0, active_rows], [-1, -1])], name = 'new_state')
+                state = tf.concat(0, [partial_state, tf.slice(state, [active_rows, 0], [-1, -1])], name = 'new_state')
 
                 # Compute the new output
-                Wo_s = tf.matmul(state, Wo)
-                Wo_s = tf.nn.bias_add(Wo_s, bo, name = 'Wo_s')
+                Wo_s = tf.matmul(Wo, state)
+                Wo_s = tf.add(bo, Wo_s, name = 'Wo_s')
 
                 output = output_activation(Wo_s, name = 'output')
                 outputs.append(output)
@@ -129,7 +134,7 @@ class ClockworkRNN():
                                 self.config['learning_rate_decay'], # Decay rate.
                                 staircase = True)
 
-        self.optimizer = tf.train.MomentumOptimizer(self.config['learning_rate'], self.config['momentum'], use_nesterov = True)
+        self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.config['momentum'], use_nesterov = True)
 
         self.train_step = self.optimizer.minimize(self.loss, global_step = self.global_step)
 

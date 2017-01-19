@@ -20,6 +20,7 @@ if __name__ == '__main__':
         'learning_rate_step': 200,
         'learning_rate_decay': 0.95,
         'momentum': 0.95,
+        'max_gradient': 10,
         'max_epochs': 5000
     }
 
